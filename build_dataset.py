@@ -29,15 +29,15 @@ OUT_PATH = Path("data/processed/dataset.csv")
 # 비·눈이 오지 않은 날 빈칸으로 오는 열 → 0으로 채운다 (데이터 점검에서 확인)
 ZERO_FILL_COLS = ["rain_mm", "rain_hr", "new_snow_cm"]
 
-# 모델에 넣을 변수 (2023→2024 조정 단계에서 결정. 모델링 코드에서 이 목록을 가져다 쓴다)
+# 모델에 넣을 변수 (eda/DECISIONS.md 5번에서 결정, 2026-10-13. 모델링 코드에서 이 목록을 가져다 쓴다)
 CALENDAR_FEATURES = ["year", "month", "dow", "is_weekend", "is_holiday", "is_offday"]
 WEATHER_FEATURES = ["max_temp", "min_temp", "rain_mm", "rain_hr",
-                    "wind_ms", "humidity", "sunshine_hr", "new_snow_cm"]
+                    "humidity", "sunshine_hr", "cloud", "wind_ms", "new_snow_cm"]
 # 묶음 SHAP·ablation에 쓰는 날씨 묶음
 WEATHER_GROUPS = {
     "temperature": ["max_temp", "min_temp"],
     "precipitation": ["rain_mm", "rain_hr"],
-    "humidity_sun": ["humidity", "sunshine_hr"],
+    "humidity_sky": ["humidity", "sunshine_hr", "cloud"],
     "wind": ["wind_ms"],
     "snow": ["new_snow_cm"],
 }
@@ -134,7 +134,7 @@ def main():
     df = add_folds(df)
 
     calendar_cols = ["year", "month", "dow", "is_weekend", "is_holiday", "is_offday"]
-    # avg_temp, cloud는 참고용으로 남겨 두지만 모델 입력에서는 제외한다 (WEATHER_FEATURES 참고)
+    # avg_temp는 참고용으로 남겨 두지만 모델 입력에서는 제외한다 (WEATHER_FEATURES 참고)
     weather_cols = [c for c in weather.columns if c != "date"]
     info_cols = ["holiday_name", "season", "tune", "test_a", "test_b"]
     df = df[["date", "rentals"] + calendar_cols + weather_cols + info_cols]
