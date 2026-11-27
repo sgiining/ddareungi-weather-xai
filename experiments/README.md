@@ -17,6 +17,7 @@ py experiments/03_ablation.py --quick
 py experiments/03_ablation.py        # 묶음 제거 (표 11) + 직전 12개월 학습
 py experiments/04_shap.py --quick    # 02_main.py --quick 결과가 있어야 오차 큰 날까지 점검됨
 py experiments/04_shap.py            # SHAP·기온 반응 곡선·오차 큰 날 (4.5.3)
+py experiments/05_stability.py       # 설명 안정성 Jaccard (4.5.4), 몇 초
 ```
 
 | 번호 | 파일 | 하는 일 | 계획서 |
@@ -26,6 +27,7 @@ py experiments/04_shap.py            # SHAP·기온 반응 곡선·오차 큰 �
 | 2 | `02_main.py` | 4개 모델 × 테스트 2기간 성능 (MAE·RMSE·R²·ME, 시드 평균 ± 표준편차) | 표 10 |
 | 3 | `03_ablation.py` | 날씨 묶음 하나씩 제거(6개 구성) + 직전 12개월 학습, 기상 추가 RF 설정 그대로 | 표 11, 12개월 표 |
 | 4 | `04_shap.py` | 기상 추가 RF의 TreeSHAP(시드 평균), 변수·묶음 중요도, 평일/쉬는 날·계절별 기여도, 강수 산점도, 기온 반응 곡선, 오차 큰 날 설명 | 4.5.3 |
+| 5 | `05_stability.py` | 상위 변수 5개·상위 날씨 묶음 3개의 Jaccard (기간 간, 시드 간) | 4.5.4 |
 | — | `analysis_rules.py` | 오차가 큰 날짜 선정, 기온 반응 곡선 계산 (5단계에서 사용) | 4.5.3 |
 
 ## 결과 파일
@@ -48,7 +50,10 @@ results/tables/
 ├─ 04_by_segment.csv                ← 평일/쉬는 날, 계절별 기여도
 ├─ 04_shap_values_{기간}.csv         ← 날짜별 시드 평균 SHAP
 ├─ 04_large_error_days_{기간}.csv    ← 오차 큰 날 목록과 주요 SHAP 변수
-└─ 04_ice_temp_{기간}.csv            ← 기온 반응 평균 곡선
+├─ 04_ice_temp_{기간}.csv            ← 기온 반응 평균 곡선
+├─ 05_stability_table.csv           ← 설명 안정성 표에 옮길 형식
+├─ 05_stability.csv                 ← 비교별 Jaccard (쌍 수, 평균, 최소, 최대)
+└─ 05_top_sets.csv                  ← 기간·시드별 상위 항목 목록과 경계 차이
 
 results/figures/
 └─ 04_importance_*, 04_segment_*, 04_rain_scatter_*, 04_ice_temp_*, 04_ice_temp_season_*,
