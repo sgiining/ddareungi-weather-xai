@@ -3,13 +3,18 @@
 - 데이터 불러오기, 단계별 학습/평가 분할, 남은 빈칸 채우기
 - 모델 입력 만들기: 월·요일 원-핫 인코딩 (모든 모델 같은 입력, eda/DECISIONS.md 8번)
 - SHAP 값을 원래 변수(월·요일) 단위와 날씨 묶음 단위로 합치기
+- 선택된 설정으로 랜덤 포레스트 학습·예측, 평가 지표 계산 (02_main.py 이후 공통)
 """
 
 import sys
 from pathlib import Path
 
+import json
+
 import numpy as np
 import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 
 ROOT = Path(__file__).resolve().parents[1]          # 프로젝트 폴더
 sys.path.insert(0, str(ROOT))
@@ -20,8 +25,12 @@ RESULTS = ROOT / "results"
 TABLES = RESULTS / "tables"
 FIGURES = RESULTS / "figures"
 
+SELECTED = TABLES / "01_tune_selected.json"   # 01_tune.py 가 고른 설정
+
 SEEDS = [0, 1, 2, 3, 4]
 STAGES = ["tune", "test_a", "test_b"]   # dataset.csv 의 단계 열 이름
+TEST_STAGES = ["test_a", "test_b"]
+PERIOD_LABEL = {"test_a": "2025", "test_b": "2026H1"}   # 계획서: 2025년 / 2026년 상반기
 
 # 모델별 입력 (원래 변수 기준)
 MODEL_FEATURES = {
@@ -95,3 +104,51 @@ def shap_by_variable(shap_values, columns, raw_features) -> pd.DataFrame:
 def shap_by_weather_group(shap_by_var: pd.DataFrame) -> pd.DataFrame:
     """변수 단위 SHAP을 날씨 묶음 단위로 부호 그대로 합친다 (계획서 3.4절)."""
     return pd.DataFrame({g: shap_by_var[cols].sum(axis=1) for g, cols in WEATHER_GROUPS.items()})
+
+
+# ---------------------------------------------------------------------------
+# 랜덤 포레스트: 01_tune.py 가 고른 설정으로만 학습한다
+# ---------------------------------------------------------------------------
+def load_selected(path=None) -> dict:
+    """{'B1': {...}, 'P': {...}} — n_estimators, max_depth, min_samples_leaf, max_features, target"""
+    path = Path(path) if path else SELECTED
+    if not path.exists():
+        raise FileNotFoundError(f"{path} 이 없습니다. 먼저 py experiments/01_tune.py 를 실행하세요.")
+    with open(path, encoding="utf-8") as f:
+        return json.load(f)
+
+
+def make_rf(params: dict, seed: int, n_estimators=None) -> RandomForestRegressor:
+    """n_estimators 는 --quick 점검 때만 덮어쓴다."""
+    return RandomForestRegressor(
+        n_estimators=n_estimators or params["n_estimators"],
+        max_depth=params["max_depth"],
+        min_samples_leaf=params["min_samples_leaf"],
+        max_features=params["max_features"],
+        bootstrap=True,
+        random_state=seed,
+        n_jobs=-1,
+    )
+
+
+def fit_predict_rf(params: dict, seed: int, X_tr, y_tr, X_ev, n_estimators=None):
+    """학습한 모델과 원래 단위(건)의 예측값을 돌려준다. log1p 정답이면 expm1로 되돌린다."""
+    model = make_rf(params, seed, n_estimators)
+    if params["target"] == "log1p":
+        model.fit(X_tr, np.log1p(y_tr))
+        return model, np.expm1(model.predict(X_ev))
+    model.fit(X_tr, y_tr)
+    return model, model.predict(X_ev)
+
+
+# ---------------------------------------------------------------------------
+# 평가 지표 (계획서 식 (1)~(4)), 모두 원래 단위(건)
+# ---------------------------------------------------------------------------
+def metrics(y_true, y_pred) -> dict:
+    y, p = np.asarray(y_true, dtype=float), np.asarray(y_pred, dtype=float)
+    return {
+        "MAE": float(mean_absolute_error(y, p)),
+        "RMSE": float(np.sqrt(mean_squared_error(y, p))),
+        "R2": float(r2_score(y, p)),          # 평가 기간 실제값 평균 기준
+        "ME": float(np.mean(y - p)),          # 음수 = 실제보다 많게 예측(과대예측)
+    }
