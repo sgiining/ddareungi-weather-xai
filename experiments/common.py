@@ -152,3 +152,23 @@ def metrics(y_true, y_pred) -> dict:
         "R2": float(r2_score(y, p)),          # 평가 기간 실제값 평균 기준
         "ME": float(np.mean(y - p)),          # 음수 = 실제보다 많게 예측(과대예측)
     }
+
+
+# ---------------------------------------------------------------------------
+# 그림 (eda/eda_utils.py 와 같은 설정)
+# ---------------------------------------------------------------------------
+def setup_matplotlib():
+    """한글이 깨지지 않도록 글꼴을 맞춘다 (Windows: 맑은 고딕)."""
+    import matplotlib
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    from matplotlib import font_manager
+
+    available = {f.name for f in font_manager.fontManager.ttflist}
+    for name in ("Malgun Gothic", "AppleGothic", "NanumGothic", "Noto Sans CJK KR"):
+        if name in available:
+            plt.rcParams["font.family"] = name
+            break
+    plt.rcParams["axes.unicode_minus"] = False
+    plt.rcParams["figure.dpi"] = 110
+    return plt
