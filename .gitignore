@@ -1,0 +1,22 @@
+# 인증키 (절대 올리지 않음)
+.env
+
+# 데이터 (원본·수집·가공 결과)
+data/
+
+# 실험 결과물 (필요하면 그림만 따로 올림)
+outputs/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# 편집기·OS
+.vscode/
+.DS_Store
+Thumbs.db
